@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARD Logistics — AI Training Assistant</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            color: #38bdf8;
+            margin-bottom: 6px;
+        }
+
+        .header p {
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 700px;
+            background: #1e293b;
+            border-radius: 16px;
+            border: 1px solid #334155;
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            height: 420px;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .message {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .avatar.ai { background: #0ea5e9; }
+        .avatar.user { background: #7c3aed; }
+
+        .bubble {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .message.ai .bubble {
+            background: #0f2744;
+            border: 1px solid #1e3a5f;
+            color: #cbd5e1;
+        }
+
+        .message.user .bubble {
+            background: #7c3aed;
+            color: white;
+        }
+
+        .typing {
+            display: flex;
+            gap: 4px;
+            padding: 12px 16px;
+            background: #0f2744;
+            border-radius: 12px;
+            width: fit-content;
+            border: 1px solid #1e3a5f;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            background: #38bdf8;
+            border-radius: 50%;
+            animation: bounce 1.2s infinite;
+        }
+
+        .dot:nth-child(2) { animation-delay: 0.2s; }
+        .dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes bounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-8px); }
+        }
+
+        .input-area {
+            padding: 16px;
+            border-top: 1px solid #334155;
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-area input {
+            flex: 1;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 12px 16px;
+            color: #e2e8f0;
+            font-size: 14px;
+            outline: none;
+            font-family: inherit;
+        }
+
+        .input-area input:focus {
+            border-color: #38bdf8;
+        }
+
+        .input-area input::placeholder {
+            color: #475569;
+        }
+
+        .send-btn {
+            background: #0ea5e9;
+            border: none;
+            border-radius: 10px;
+            padding: 12px 20px;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-family: inherit;
+        }
+
+        .send-btn:hover { background: #0284c7; }
+        .send-btn:disabled { background: #334155; cursor: not-allowed; }
+
+        .examples {
+            width: 100%;
+            max-width: 700px;
+            margin-top: 20px;
+        }
+
+        .examples h3 {
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 10px;
+        }
+
+        .example-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .chip {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 12px;
+            color: #94a3b8;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .chip:hover {
+            border-color: #38bdf8;
+            color: #38bdf8;
+        }
+
+        .powered {
+            margin-top: 16px;
+            font-size: 11px;
+            color: #334155;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>🤖 ARD Logistics — AI Training Assistant</h1>
+        <p>Ask any question about employee training records in plain English</p>
+    </div>
+
+    <div class="chat-container">
+        <div class="chat-messages" id="chatMessages">
+            <div class="message ai">
+                <div class="avatar ai">🤖</div>
+                <div class="bubble">
+                    Hi! I am the ARD Logistics Training AI Assistant. I can answer any question about employee training records. Just ask me anything!
+                    <br><br>
+                    For example: <em>"Who has not completed training this week?"</em>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <input
+                type="text"
+                id="questionInput"
+                placeholder="Ask a question about training records..."
+                onkeypress="handleKeyPress(event)"
+            />
+            <button class="send-btn" id="sendBtn" onclick="askQuestion()">Ask AI</button>
+        </div>
+    </div>
+
+    <div class="examples">
+        <h3> Try these example questions:</h3>
+        <div class="example-chips">
+            <div class="chip" onclick="fillQuestion(this)">Who has not completed training this week?</div>
+            <div class="chip" onclick="fillQuestion(this)">Which department has lowest completion rate?</div>
+            <div class="chip" onclick="fillQuestion(this)">Who are the top trainees this month?</div>
+            <div class="chip" onclick="fillQuestion(this)">Which trainer has the best feedback scores?</div>
+            <div class="chip" onclick="fillQuestion(this)">How many trainings are scheduled next week?</div>
+            <div class="chip" onclick="fillQuestion(this)">List employees who failed last training</div>
+        </div>
+    </div>
+
+    <p class="powered">Powered by OpenAI GPT + LangChain + Flask + SQL</p>
+
+    <script>
+        function fillQuestion(chip) {
+            document.getElementById('questionInput').value = chip.textContent;
+            document.getElementById('questionInput').focus();
+        }
+
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') askQuestion();
+        }
+
+        async function askQuestion() {
+            const input = document.getElementById('questionInput');
+            const question = input.value.trim();
+
+            if (!question) return;
+
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Thinking...';
+
+            // Add user message
+            addMessage('user', question);
+            input.value = '';
+
+            // Show typing indicator
+            const typingId = showTyping();
+
+            try {
+                // Call your Flask AI endpoint
+                const response = await fetch('/ai/ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: question })
+                });
+
+                const data = await response.json();
+                removeTyping(typingId);
+
+                if (data.status === 'success') {
+                    addMessage('ai', data.answer);
+                } else {
+                    addMessage('ai', 'Sorry, I could not find an answer. Please try again.');
+                }
+
+            } catch (error) {
+                removeTyping(typingId);
+                addMessage('ai', 'I am having trouble connecting to the database. Please try again.');
+            }
+
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Ask AI';
+        }
+
+        function addMessage(type, text) {
+            const messages = document.getElementById('chatMessages');
+            const div = document.createElement('div');
+            div.className = `message ${type}`;
+            div.innerHTML = `
+                <div class="avatar ${type}">${type === 'ai' ? '🤖' : '👤'}</div>
+                <div class="bubble">${text}</div>
+            `;
+            messages.appendChild(div);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        function showTyping() {
+            const messages = document.getElementById('chatMessages');
+            const id = 'typing-' + Date.now();
+            const div = document.createElement('div');
+            div.className = 'message ai';
+            div.id = id;
+            div.innerHTML = `
+                <div class="avatar ai">🤖</div>
+                <div class="typing">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+            `;
+            messages.appendChild(div);
+            messages.scrollTop = messages.scrollHeight;
+            return id;
+        }
+
+        function removeTyping(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+    </script>
+
+</body>
+</html>
