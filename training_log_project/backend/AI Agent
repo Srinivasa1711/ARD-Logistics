@@ -1,0 +1,125 @@
+import os
+from flask import Flask, request, jsonify
+from sqlalchemy import create_engine, text
+from langchain_community.utilities import SQLDatabase
+from langchain_community.agent_toolkits import create_sql_agent
+from langchain_openai import ChatOpenAI
+
+# FLASK APP SETUP 
+app = Flask(__name__)
+
+# OPENAI API KEY 
+os.environ["OPENAI_API_KEY"] = "api-key"
+
+# DATABASE CONNECTION 
+DATABASE_URL = "sqlite:///training_log.db"
+
+# CREATE THE AI AGENT 
+def create_agent():
+    db = SQLDatabase.from_uri(DATABASE_URL)
+
+    # Create the GPT model
+    llm = ChatOpenAI(
+        model="gpt-3.5-turbo",
+        temperature=0,  # 0 = consistent answers, no randomness
+    )
+
+    # Create the SQL agent
+    agent = create_sql_agent(
+        llm=llm,
+        db=db,
+        verbose=True,
+        agent_type="openai-tools",
+    )
+
+    return agent
+
+
+# Create agent once when app starts
+agent = create_agent()
+
+
+# AI QUESTION ENDPOINT 
+@app.route('/ai/ask', methods=['POST'])
+def ask_ai():
+    """
+    Endpoint: POST /ai/ask
+    Body: { "question": "Who completed training this week?" }
+    Returns: AI answer based on real database data
+    """
+
+    data = request.get_json()
+
+    if not data or 'question' not in data:
+        return jsonify({
+            "error": "Please provide a question"
+        }), 400
+
+    question = data['question']
+
+    try:
+        context = f"""
+        You are an AI assistant for the ARD Logistics Training Log System.
+        You help managers and HR staff get quick answers about employee training records.
+        Answer this question clearly and simply: {question}
+        """
+
+        # Get answer from AI using real database data
+        response = agent.invoke({"input": context})
+        answer = response.get("output", "I could not find an answer.")
+
+        return jsonify({
+            "question": question,
+            "answer": answer,
+            "status": "success"
+        })
+
+    except Exception as e:
+        return jsonify({
+            "error": str(e),
+            "status": "failed"
+        }), 500
+
+
+# EXAMPLE QUESTIONS ENDPOINT 
+@app.route('/ai/examples', methods=['GET'])
+def example_questions():
+    """
+    Returns example questions managers can ask the AI
+    """
+    examples = [
+        "Who has not completed their training this week?",
+        "How many employees finished training in June?",
+        "Which department has the lowest training completion rate?",
+        "Show me all employees who completed safety training.",
+        "Who are the top performing trainees this month?",
+        "Which trainer has the best feedback scores?",
+        "How many trainings are scheduled for next week?",
+        "List all employees who failed their last training.",
+    ]
+
+    return jsonify({
+        "example_questions": examples,
+        "tip": "Ask any question about training records in plain English!"
+    })
+
+
+# HEALTH CHECK ENDPOINT 
+@app.route('/ai/health', methods=['GET'])
+def health_check():
+    return jsonify({
+        "status": "AI Agent is running!",
+        "model": "GPT-3.5-turbo",
+        "framework": "LangChain + OpenAI",
+        "database": "SQLite Training Log"
+    })
+
+
+# RUN THE APP 
+if __name__ == '__main__':
+    app.run(debug=True, port=5001)
+
+
+#    -d '{"question": "Who completed training this week?"}'
+#
+# ============================================================
