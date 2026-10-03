@@ -1,0 +1,7 @@
+# Install with: pip install -r training_log_project/backend/requirements-test.txt
+# Run with:     pytest training_log_project/backend/tests
+flask
+flask-sqlalchemy
+apscheduler
+requests
+pytest
